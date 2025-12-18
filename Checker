@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GenLayer Community Hub</title>
+    <style>
+        :root { --discord: #5865F2; --bg: #0d1117; --card: #161b22; --accent: #238636; --gold: #f1c40f; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        
+        .legend { background: var(--card); border: 1px solid #30363d; padding: 15px; border-radius: 10px; width: 100%; max-width: 450px; margin-bottom: 20px; font-size: 0.85rem; }
+        .legend-title { font-weight: bold; color: var(--gold); margin-bottom: 8px; text-transform: uppercase; text-align: center; }
+        .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+
+        .search-box { background: var(--card); padding: 25px; border-radius: 12px; width: 100%; max-width: 450px; border: 1px solid #30363d; box-shadow: 0 8px 24px rgba(0,0,0,0.3); text-align: center; }
+        h1 { color: var(--discord); font-size: 1.6rem; margin: 0 0 10px 0; }
+        input { width: 85%; padding: 12px; margin: 15px 0; border-radius: 8px; border: 1px solid #30363d; background: #010409; color: white; font-size: 1rem; outline: none; }
+        .btn-main { background: var(--discord); color: white; border: none; padding: 12px; width: 93%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        
+        .result { margin-top: 20px; display: none; text-align: left; background: #0d1117; padding: 15px; border-radius: 8px; border-left: 5px solid var(--discord); }
+        .role-name { color: var(--gold); font-weight: bold; font-size: 1.1rem; }
+        
+        .btn-copy { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 8px; width: 100%; border-radius: 6px; font-size: 0.8rem; cursor: pointer; margin-top: 10px; }
+        .btn-copy:hover { background: #30363d; }
+
+        table { width: 100%; max-width: 500px; margin: 30px 0; border-collapse: collapse; background: var(--card); border-radius: 8px; overflow: hidden; font-size: 0.9rem; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #30363d; }
+        th { background: #21262d; color: #8b949e; }
+    </style>
+</head>
+<body>
+
+    <div class="legend">
+        <div class="legend-title">🧬 GenLayer Evolution</div>
+        <div class="legend-grid">
+            <span>Lvl 1-6: Molecule</span>
+            <span>Lvl 7-17: Neuron</span>
+            <span>Lvl 18-35: Synapse</span>
+            <span>Lvl 36-53: Brain</span>
+            <span>Lvl 54+: Singularity</span>
+        </div>
+    </div>
+
+    <div class="search-box">
+        <h1>GenLayer Tracker</h1>
+        <input type="text" id="userInput" placeholder="Your Discord Username">
+        <button class="btn-main" onclick="checkRank()">Check Level & Form</button>
+        
+        <div id="resultBox" class="result">
+            <div id="statsContent">
+                <div style="font-size: 1.1rem;">Rank: <span id="resRnk" style="color:white">--</span></div>
+                <div style="font-size: 1.1rem;">Level: <span id="resLvl" style="color:var(--discord)">--</span></div>
+                <div style="margin-top:10px;">Form: <span id="resRole" class="role-name">--</span></div>
+            </div>
+            <button class="btn-copy" onclick="copyToClipboard()">📋 Copy Stats for Discord</button>
+        </div>
+    </div>
+
+    <table>
+        <thead><tr><th>Rank</th><th>Username</th><th>Level</th></tr></thead>
+        <tbody id="topList"></tbody>
+    </table>
+
+    <script>
+        const SID = "1237055789441487021"; 
+        let cachedPlayers = [];
+
+        function getGenRole(lvl) {
+            if (lvl >= 54) return "Singularity";
+            if (lvl >= 36) return "Brain";
+            if (lvl >= 18) return "Synapse";
+            if (lvl >= 7) return "Neuron";
+            if (lvl >= 1) return "Molecule";
+            return "Newbie";
+        }
+
+        async function loadData() {
+            try {
+                const proxy = "https://api.allorigins.win/get?url=";
+                const target = `https://mee6.xyz/api/plugins/levels/leaderboard/${SID}`;
+                const res = await fetch(proxy + encodeURIComponent(target));
+                const json = await res.json();
+                const data = JSON.parse(json.contents);
+                cachedPlayers = data.players;
+
+                document.getElementById('topList').innerHTML = cachedPlayers.slice(0, 10).map((p, i) => `
+                    <tr><td>#${i+1}</td><td>${p.username}</td><td>Lvl ${p.level}</td></tr>
+                `).join('');
+            } catch (e) { console.error("Load failed"); }
+        }
+
+        function checkRank() {
+            const name = document.getElementById('userInput').value.toLowerCase().trim();
+            const p = cachedPlayers.find(x => x.username.toLowerCase() === name);
+            if(p) {
+                document.getElementById('resRnk').innerText = "#" + (cachedPlayers.indexOf(p) + 1);
+                document.getElementById('resLvl').innerText = p.level;
+                document.getElementById('resRole').innerText = getGenRole(p.level);
+                document.getElementById('resultBox').style.display = "block";
+            } else {
+                alert("User not found in top list!");
+            }
+        }
+
+        function copyToClipboard() {
+            const rnk = document.getElementById('resRnk').innerText;
+            const lvl = document.getElementById('resLvl').innerText;
+            const role = document.getElementById('resRole').innerText;
+            const user = document.getElementById('userInput').value;
+            const url = window.location.href;
+
+            const text = `🧬 **GenLayer Evolutionary Status**\n👤 User: ${user}\n🏆 Rank: ${rnk} | 🎖️ Level: ${lvl}\n✨ Current Form: **${role}**\n\nCheck yours here: ${url}`;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Stats copied! Now paste them in Discord! 🚀");
+            });
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
